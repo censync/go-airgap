@@ -32,17 +32,18 @@ const (
 	maxPayloadSize = (2<<15 - 1) * (2<<15 - 1) // ~ 12.58Mb
 )
 
-type chunks struct {
+type Chunks struct {
 	mu    sync.RWMutex
 	count uint16
 	size  uint16
 	data  [][]byte
 }
 
-func NewChunks(src []byte, chunkSize int) (*chunks, error) {
-	/*if len(src) < minChunkSize {
-		return nil, errors.New("less than go-airgap message minimum size")
-	}*/
+func NewChunks() *Chunks {
+	return &Chunks{}
+}
+
+func (ch *Chunks) SetData(src []byte, chunkSize int) (*Chunks, error) {
 	if chunkSize < minChunkSize {
 		return nil, errors.New("min chunk size 32")
 	}
@@ -76,7 +77,7 @@ func NewChunks(src []byte, chunkSize int) (*chunks, error) {
 		data = append(data, chunk)
 	}
 
-	return &chunks{
+	return &Chunks{
 		count: uint16(len(data)),
 		size:  uint16(chunkSize),
 		data:  data,
@@ -122,55 +123,55 @@ func uncompress(src []byte) ([]byte, error) {
 	return uncompressedBytes, nil
 }
 
-func (f *chunks) getChunkWithHeader(index uint16) []byte {
-	size := len(f.data[index])
-	chunk := make([]byte, f.size+chunkHeaderOffset)
+func (ch *Chunks) getChunkWithHeader(index uint16) []byte {
+	size := len(ch.data[index])
+	chunk := make([]byte, ch.size+chunkHeaderOffset)
 	// chunk_index
 	chunk[0] = byte(index)
 	chunk[1] = byte(index >> 8)
 	// chunk_count
-	chunk[2] = byte(f.count)
-	chunk[3] = byte(f.count >> 8)
+	chunk[2] = byte(ch.count)
+	chunk[3] = byte(ch.count >> 8)
 	// chunk_size
 	chunk[4] = byte(size)
 	chunk[5] = byte(size >> 8)
 
-	copy(chunk[chunkHeaderOffset:], f.data[index])
+	copy(chunk[chunkHeaderOffset:], ch.data[index])
 
 	return chunk
 }
 
-func (f *chunks) Data() []byte {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+func (ch *Chunks) Data() []byte {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
 
 	var result []byte
-	for index := uint16(0); index < f.count; index++ {
-		result = append(result, f.data[index]...)
+	for index := uint16(0); index < ch.count; index++ {
+		result = append(result, ch.data[index]...)
 	}
 	result, _ = uncompress(result)
 	return result
 }
 
 // SerializeB64 represents data frames to strings array, ready for generate QR code animation frames
-func (f *chunks) SerializeB64() []string {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+func (ch *Chunks) SerializeB64() []string {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
 
 	var chunksB64 []string
-	for i := uint16(0); i < f.count; i++ {
-		chunksB64 = append(chunksB64, base64.StdEncoding.EncodeToString(f.getChunkWithHeader(i)))
+	for i := uint16(0); i < ch.count; i++ {
+		chunksB64 = append(chunksB64, base64.StdEncoding.EncodeToString(ch.getChunkWithHeader(i)))
 	}
 	return chunksB64
 }
 
-func (f *chunks) Count() uint16 {
-	return f.count
+func (ch *Chunks) Count() uint16 {
+	return ch.count
 }
 
-func (f *chunks) ReadB64Chunk(frame string) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
+func (ch *Chunks) ReadB64Chunk(frame string) error {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
 
 	chunk, err := base64.StdEncoding.DecodeString(frame)
 
@@ -178,26 +179,26 @@ func (f *chunks) ReadB64Chunk(frame string) error {
 		return err
 	}
 
-	if f.count == 0 {
-		f.count = uint16(chunk[2]) | uint16(chunk[3])<<8
-		f.data = make([][]byte, f.count)
+	if ch.count == 0 {
+		ch.count = uint16(chunk[2]) | uint16(chunk[3])<<8
+		ch.data = make([][]byte, ch.count)
 	}
 
 	index := uint16(chunk[0]) | uint16(chunk[1])<<8
 
 	size := uint16(chunk[4]) | uint16(chunk[5])<<8
 
-	if f.data[index] == nil {
-		f.data[index] = make([]byte, size)
-		copy(f.data[index], chunk[chunkHeaderOffset:chunkHeaderOffset+size])
+	if ch.data[index] == nil {
+		ch.data[index] = make([]byte, size)
+		copy(ch.data[index], chunk[chunkHeaderOffset:chunkHeaderOffset+size])
 	}
 
 	return nil
 }
 
-func (f *chunks) IsReady() bool {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
+func (ch *Chunks) IsReady() bool {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
 
-	return len(f.data) == int(f.count)
+	return len(ch.data) == int(ch.count)
 }

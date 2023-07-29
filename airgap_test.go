@@ -28,7 +28,7 @@ const (
 	testPassphrase = "My dummy AES256 password 0123456"
 	opCodeTest1    = 1
 	opCodeTest2    = 1000
-	opCodeTest3    = 10000
+	opCodeTest3    = 65535
 )
 
 type DummyEncryptorDecryptor struct {
@@ -113,12 +113,12 @@ func TestAirGap_CreateMessage(t *testing.T) {
 	t.Log(serializedChunks2)
 	t.Log(serializedChunks3)
 	if err != nil {
-		t.Fatal("cannot serialize chunks")
+		t.Fatal("cannot serialize Chunks")
 	}
 
 	// t.Log(serializedChunks)
 
-	unserializedChunks := &chunks{}
+	unserializedChunks := &Chunks{}
 
 	for i := range serializedChunks {
 		err = unserializedChunks.ReadB64Chunk(serializedChunks[i])
@@ -134,7 +134,7 @@ func TestAirGap_CreateMessage(t *testing.T) {
 
 	if err != nil {
 		t.Log(err)
-		t.Fatal("cannot unserialize chunks")
+		t.Fatal("cannot unserialize Chunks")
 	}
 
 	t.Log(unserializedMessage)

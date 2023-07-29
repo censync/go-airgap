@@ -34,7 +34,7 @@ func TestChunks_NewChunks(t *testing.T) {
 
 	t.Log("Readed random:", count)
 
-	chunksWithRemainder, err := NewChunks(payload, defaultChunkSize)
+	chunksWithRemainder, err := NewChunks().SetData(payload, defaultChunkSize)
 
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +42,7 @@ func TestChunks_NewChunks(t *testing.T) {
 
 	strChunks := chunksWithRemainder.SerializeB64()
 
-	readedChunks := &chunks{}
+	readedChunks := &Chunks{}
 
 	for i := 0; i < len(strChunks); i++ {
 		err = readedChunks.ReadB64Chunk(strChunks[i])

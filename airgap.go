@@ -37,12 +37,12 @@ type AirGap struct {
 	ed EncryptorDecryptor
 }
 
-// Encryptor implements encryption method for chunks
+// Encryptor implements encryption method for Chunks
 type Encryptor interface {
 	Encrypt(data []byte) ([]byte, error)
 }
 
-// Decryptor implements decryption method for chunks
+// Decryptor implements decryption method for Chunks
 type Decryptor interface {
 	Decrypt(data []byte) ([]byte, error)
 }
@@ -54,16 +54,17 @@ type EncryptorDecryptor interface {
 	Decryptor
 }
 
+// Message contains
 type Message struct {
 	Version    uint8
 	InstanceId []byte
-	Payload    []*OpPayload
+	Operations []*Operation
 	chunkSize  int
 	e          Encryptor
 }
 
-// OpPayload is operation payload data
-type OpPayload struct {
+// Operation contains payload data for operation
+type Operation struct {
 	// OpCode - operation code
 	OpCode uint16
 	Size   uint32
@@ -116,7 +117,7 @@ func (a *AirGap) CreateMessage() *Message {
 }
 
 func (m *Message) AddOperation(opCode uint16, data []byte) *Message {
-	m.Payload = append(m.Payload, &OpPayload{
+	m.Operations = append(m.Operations, &Operation{
 		OpCode: opCode,
 		Size:   uint32(len(data)),
 		Data:   data,
@@ -128,22 +129,22 @@ func (m *Message) Marshal() ([]byte, error) {
 	result := make([]byte, 0)
 	result = append(result, m.Version)
 	result = append(result, m.InstanceId[:]...)
-	for i := range m.Payload {
+	for i := range m.Operations {
 		// Allocate memory for serialized chunk
-		payload := make([]byte, operationPayloadOffset+m.Payload[i].Size)
+		payload := make([]byte, operationPayloadOffset+m.Operations[i].Size)
 
 		// Serialize operation code
-		payload[0] = byte(m.Payload[i].OpCode >> 8)
-		payload[1] = byte(m.Payload[i].OpCode)
+		payload[0] = byte(m.Operations[i].OpCode >> 8)
+		payload[1] = byte(m.Operations[i].OpCode)
 
 		// Serialize chunk size
-		payload[2] = byte(m.Payload[i].Size >> 24)
-		payload[3] = byte(m.Payload[i].Size >> 16)
-		payload[4] = byte(m.Payload[i].Size >> 8)
-		payload[5] = byte(m.Payload[i].Size)
+		payload[2] = byte(m.Operations[i].Size >> 24)
+		payload[3] = byte(m.Operations[i].Size >> 16)
+		payload[4] = byte(m.Operations[i].Size >> 8)
+		payload[5] = byte(m.Operations[i].Size)
 
 		// Serialize payload
-		copy(payload[operationPayloadOffset:], m.Payload[i].Data)
+		copy(payload[operationPayloadOffset:], m.Operations[i].Data)
 		result = append(result, payload...)
 	}
 
@@ -159,7 +160,7 @@ func (m *Message) MarshalB64Chunks() ([]string, error) {
 		return nil, err
 	}
 
-	result, err := NewChunks(serializedMessages, m.chunkSize)
+	result, err := NewChunks().SetData(serializedMessages, m.chunkSize)
 
 	if err != nil {
 		return nil, err
