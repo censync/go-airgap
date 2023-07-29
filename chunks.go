@@ -33,10 +33,11 @@ const (
 )
 
 type Chunks struct {
-	mu    sync.RWMutex
-	count uint16
-	size  uint16
-	data  [][]byte
+	mu     sync.RWMutex
+	count  uint16
+	size   uint16
+	filled uint16
+	data   [][]byte
 }
 
 func NewChunks() *Chunks {
@@ -169,6 +170,10 @@ func (ch *Chunks) Count() uint16 {
 	return ch.count
 }
 
+func (ch *Chunks) Filled() uint16 {
+	return ch.filled
+}
+
 func (ch *Chunks) ReadB64Chunk(frame string) (wasAdded bool, err error) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
@@ -191,6 +196,7 @@ func (ch *Chunks) ReadB64Chunk(frame string) (wasAdded bool, err error) {
 	if ch.data[index] == nil {
 		ch.data[index] = make([]byte, size)
 		copy(ch.data[index], chunk[chunkHeaderOffset:chunkHeaderOffset+size])
+		ch.filled++
 		wasAdded = true
 	}
 
@@ -201,5 +207,5 @@ func (ch *Chunks) IsReady() bool {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
 
-	return len(ch.data) == int(ch.count)
+	return ch.filled == ch.count
 }
