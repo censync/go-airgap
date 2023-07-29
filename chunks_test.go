@@ -45,7 +45,7 @@ func TestChunks_NewChunks(t *testing.T) {
 	readedChunks := &Chunks{}
 
 	for i := 0; i < len(strChunks); i++ {
-		err = readedChunks.ReadB64Chunk(strChunks[i])
+		_, err = readedChunks.ReadB64Chunk(strChunks[i])
 		if err != nil {
 			t.Fatal("cannot parse frame")
 		}

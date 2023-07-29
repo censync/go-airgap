@@ -24,6 +24,7 @@ const (
 	compressedPubKeySize   = 33
 	airGapMessagesOffset   = 1 + compressedPubKeySize // version(1) + pub_key(33)
 	operationPayloadOffset = 6                        // op_code(2) + op_size(4)
+	airGapMessageMinSize   = airGapMessagesOffset + operationPayloadOffset
 )
 
 type AirGap struct {
@@ -178,6 +179,11 @@ func (a *AirGap) Unmarshal(data []byte) (*Message, error) {
 			return nil, err
 		}
 	}
+
+	if len(data) < airGapMessageMinSize {
+		return nil, errors.New("go-airgap message to small")
+	}
+
 	version := data[0]
 	instanceId := data[1:airGapMessagesOffset]
 

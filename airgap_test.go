@@ -121,7 +121,7 @@ func TestAirGap_CreateMessage(t *testing.T) {
 	unserializedChunks := &Chunks{}
 
 	for i := range serializedChunks {
-		err = unserializedChunks.ReadB64Chunk(serializedChunks[i])
+		_, err = unserializedChunks.ReadB64Chunk(serializedChunks[i])
 		if err != nil {
 			t.Fatal(err)
 		}

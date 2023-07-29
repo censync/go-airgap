@@ -169,14 +169,14 @@ func (ch *Chunks) Count() uint16 {
 	return ch.count
 }
 
-func (ch *Chunks) ReadB64Chunk(frame string) error {
+func (ch *Chunks) ReadB64Chunk(frame string) (wasAdded bool, err error) {
 	ch.mu.Lock()
 	defer ch.mu.Unlock()
 
 	chunk, err := base64.StdEncoding.DecodeString(frame)
 
 	if err != nil {
-		return err
+		return wasAdded, errors.New("incorrect go-airgap message")
 	}
 
 	if ch.count == 0 {
@@ -191,9 +191,10 @@ func (ch *Chunks) ReadB64Chunk(frame string) error {
 	if ch.data[index] == nil {
 		ch.data[index] = make([]byte, size)
 		copy(ch.data[index], chunk[chunkHeaderOffset:chunkHeaderOffset+size])
+		wasAdded = true
 	}
 
-	return nil
+	return wasAdded, nil
 }
 
 func (ch *Chunks) IsReady() bool {
