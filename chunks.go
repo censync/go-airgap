@@ -203,7 +203,7 @@ func (ch *Chunks) ReadB64Chunk(frame string) (wasAdded bool, err error) {
 	return wasAdded, nil
 }
 
-func (ch *Chunks) IsReady() bool {
+func (ch *Chunks) IsFilled() bool {
 	ch.mu.RLock()
 	defer ch.mu.RUnlock()
 
